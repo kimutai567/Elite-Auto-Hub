@@ -364,10 +364,29 @@ const orderBuckets = {
 
 function OrdersPanel({ orders, onUpdate, onClose }) {
   const [activeBucket, setActiveBucket] = useState("received");
+  const [draftStatuses, setDraftStatuses] = useState({});
+  const [pickupDrafts, setPickupDrafts] = useState({});
   const bucket = orderBuckets[activeBucket];
   const bucketOrders = orders.filter((order) =>
     bucket.statuses.includes(order.status),
   );
+
+  const handleStatusChange = (orderId, nextStatus) => {
+    setDraftStatuses((current) => ({
+      ...current,
+      [orderId]: nextStatus,
+    }));
+  };
+
+  const handleSaveStatus = (order) => {
+    const nextStatus = draftStatuses[order.id] ?? order.status;
+    const nextPickupDetails = pickupDrafts[order.id] ?? order.pickupDetails ?? "";
+    onUpdate(order.id, {
+      status: nextStatus,
+      pickupDetails: nextPickupDetails,
+    });
+  };
+
   return (
     <>
       <button
@@ -406,36 +425,67 @@ function OrdersPanel({ orders, onUpdate, onClose }) {
         ))}
       </div>
       {bucketOrders.length ? (
-        bucketOrders.map((order) => (
-          <article className="order-card" key={order.id}>
-            <div className="order-card-heading">
-              <div>
-                <h3>Order #{String(order.id).slice(-6)}</h3>
-                <small>{new Date(order.createdAt).toLocaleString()}</small>
+        bucketOrders.map((order) => {
+          const currentStatus = draftStatuses[order.id] ?? order.status;
+          const currentPickupDetails = pickupDrafts[order.id] ?? order.pickupDetails ?? "";
+          return (
+            <article className="order-card" key={order.id}>
+              <div className="order-card-heading">
+                <div>
+                  <h3>Order #{String(order.id).slice(-6)}</h3>
+                  <small>{new Date(order.createdAt).toLocaleString()}</small>
+                </div>
+                <strong>{money(order.total)}</strong>
               </div>
-              <strong>{money(order.total)}</strong>
-            </div>
-            <div className="order-customer">
-              <span>☎ {order.customer.phone}</span>
-              <span>◎ {order.customer.country}</span>
-              <span>✉ {order.customer.email}</span>
-            </div>
-            <p className="order-parts">
-              {order.items.map((item) => item.name).join(" · ")}
-            </p>
-            <label className="order-status">
-              Shipping status
-              <select
-                value={order.status}
-                onChange={(event) => onUpdate(order.id, event.target.value)}
-              >
-                {orderStatuses.map((status) => (
-                  <option key={status}>{status}</option>
-                ))}
-              </select>
-            </label>
-          </article>
-        ))
+              <div className="order-customer">
+                <span>☎ {order.customer.phone}</span>
+                <span>◎ {order.customer.country}</span>
+                <span>✉ {order.customer.email}</span>
+              </div>
+              <p className="order-parts">
+                {order.items.map((item) => item.name).join(" · ")}
+              </p>
+              <div className="order-status-row">
+                <label className="order-status">
+                  Shipping status
+                  <select
+                    value={currentStatus}
+                    onChange={(event) =>
+                      handleStatusChange(order.id, event.target.value)
+                    }
+                  >
+                    {orderStatuses.map((status) => (
+                      <option key={status}>{status}</option>
+                    ))}
+                  </select>
+                </label>
+                <button
+                  className="primary-button save-status-button"
+                  type="button"
+                  onClick={() => handleSaveStatus(order)}
+                >
+                  Save
+                </button>
+              </div>
+              {currentStatus === "Dispatched to airport" && (
+                <label className="pickup-details">
+                  Airport dispatch details
+                  <textarea
+                    rows="3"
+                    value={currentPickupDetails}
+                    onChange={(event) =>
+                      setPickupDrafts((current) => ({
+                        ...current,
+                        [order.id]: event.target.value,
+                      }))
+                    }
+                    placeholder="Example: Flight number, airport terminal, airline, pickup note, or cargo tracking details..."
+                  />
+                </label>
+              )}
+            </article>
+          );
+        })
       ) : (
         <p className="empty-state">
           No {bucket.label.toLowerCase()} orders right now.
@@ -1116,9 +1166,15 @@ export default function App() {
     setDrawer(false);
     notify("Order placed successfully");
   };
-  const updateOrderStatus = (id, status) =>
-    setOrders(
-      orders.map((order) => (order.id === id ? { ...order, status } : order)),
+  const updateOrderStatus = (id, update) =>
+    setOrders((currentOrders) =>
+      currentOrders.map((order) => {
+        if (order.id !== id) return order;
+        if (typeof update === "string") {
+          return { ...order, status: update };
+        }
+        return { ...order, ...update };
+      }),
     );
   if (isAdminRoute && !adminAuthenticated)
     return <AdminLogin onSuccess={() => setAdminAuthenticated(true)} />;
@@ -1273,6 +1329,48 @@ export default function App() {
             )}
           </div>
         </section>
+        <section className="request-banner" id="contact">
+          <div className="request-banner-top">
+            <div className="request-banner-copy-wrap">
+              <p className="eyebrow">
+                <span /> CUSTOM SOURCING
+              </p>
+              <h2>Need a hard-to-find part? We’ll source it.</h2>
+              <p className="request-banner-copy">
+                From fitment matching to rare performance upgrades, tell us what
+                you need and we’ll help you find the right option fast.
+              </p>
+            </div>
+            <div className="request-banner-socials">
+              <a href="https://wa.me/254702346235" target="_blank" rel="noreferrer">
+                WhatsApp
+              </a>
+              <a href="https://www.instagram.com/" target="_blank" rel="noreferrer">
+                Instagram
+              </a>
+              <a href="https://www.facebook.com/" target="_blank" rel="noreferrer">
+                Facebook
+              </a>
+            </div>
+          </div>
+          <div className="request-banner-actions">
+            <button
+              className="primary-button"
+              type="button"
+              onClick={() => setCustomRequestOpen(true)}
+            >
+              Request a specific part <span>↗</span>
+            </button>
+            <a
+              className="secondary-button"
+              href="https://wa.me/254702346235"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Message us
+            </a>
+          </div>
+        </section>
         <section className="source-section" id="how-it-works">
           <div className="source-photo">
             <img
@@ -1299,17 +1397,6 @@ export default function App() {
             </a>
           </div>
           <div className="source-number">02</div>
-        </section>
-        <section className="contact-strip" id="contact">
-          <div>
-            <p className="eyebrow">
-              <span /> NEED A SPECIFIC PART?
-            </p>
-            <h2>Let's find it.</h2>
-          </div>
-          <button className="primary-button" type="button" onClick={() => setCustomRequestOpen(true)}>
-            Request a specific part <span>↗</span>
-          </button>
         </section>
       </main>
       <footer>
