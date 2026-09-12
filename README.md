@@ -47,6 +47,7 @@ Do not commit `.env` files or real production credentials.
 - Admin responses for availability, advice, price, and sourcing timelines
 - Admin order status tracking
 - Local browser storage for demo data
+- Intergration of live chat where user can talk to a customer care representative.
 
 ## Production Build
 
