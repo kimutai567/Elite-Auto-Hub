@@ -626,19 +626,84 @@ function CustomRequestModal({ onSubmit, onClose }) {
   );
 }
 
-function RequestsPanel({ requests, onUpdate, onClose }) {
+function RequestsPanel({
+  requests,
+  selectedRequestIds,
+  onToggleSelect,
+  onToggleSelectAll,
+  onBulkStatusUpdate,
+  onUpdate,
+  onClose,
+}) {
+  const allSelected = requests.length > 0 && requests.every((item) => selectedRequestIds.includes(item.id));
+  const hasSelection = selectedRequestIds.length > 0;
+
   return <>
     <button className="orders-panel-backdrop" type="button" onClick={onClose} aria-label="Close requests" />
     <section className="orders-panel requests-panel">
       <div className="drawer-header"><div><p className="eyebrow"><span /> PARTS DESK</p><h2>Custom requests</h2></div><button className="close-button" type="button" onClick={onClose}>×</button></div>
-      {requests.length ? requests.map((item) => <article className="request-card" key={item.id}>
-        <div className="order-card-heading"><div><h3>{item.request}</h3><small>{new Date(item.createdAt).toLocaleString()}</small></div><strong>{item.status}</strong></div>
-        <div className="order-customer"><span>{item.name}</span><span>✉ {item.email}</span><span>☎ {item.phone}</span></div>
-          <p className="order-parts">Vehicle: {item.vehicle} · Color: {item.color || "No preference"}</p>
-          <div className="request-admin-fields"><label>Availability<select value={item.availability || "Pending"} onChange={(event) => onUpdate(item.id, { availability: event.target.value })}><option>Pending</option><option>Available</option><option>Not available</option></select></label><label>Price<input type="number" min="0" value={item.price || ""} onChange={(event) => onUpdate(item.id, { price: event.target.value })} placeholder="USD" /></label>{item.availability === "Not available" && <label>Estimated sourcing time<input value={item.timeline || ""} onChange={(event) => onUpdate(item.id, { timeline: event.target.value })} placeholder="e.g. 1 month" /></label>}</div>
-          <label className="order-status">Advice or availability<textarea value={item.response || ""} rows="3" onChange={(event) => onUpdate(item.id, { response: event.target.value })} placeholder="Explain availability, alternatives, price, or fitment advice..." /></label>
-          <label className="order-status">Request status<select value={item.status} onChange={(event) => onUpdate(item.id, { status: event.target.value })}><option>New</option><option>Checking availability</option><option>Advised</option><option>Completed</option><option>Converted to order</option></select></label>
-      </article>) : <p className="empty-state">No custom part requests yet.</p>}
+      {requests.length ? (
+        <>
+          <div className="request-selection-tools">
+            <label className="request-select-all">
+              <input
+                type="checkbox"
+                checked={allSelected}
+                onChange={onToggleSelectAll}
+              />
+              Select all
+            </label>
+            {hasSelection && (
+              <>
+                <button
+                  className="primary-button"
+                  type="button"
+                  onClick={() => {
+                    if (window.confirm(`Mark ${selectedRequestIds.length} selected request(s) as completed?`)) {
+                      onBulkStatusUpdate("Completed");
+                    }
+                  }}
+                >
+                  Mark selected as completed
+                </button>
+                <button
+                  className="secondary-button"
+                  type="button"
+                  onClick={() => {
+                    if (window.confirm(`Mark ${selectedRequestIds.length} selected request(s) as advised?`)) {
+                      onBulkStatusUpdate("Advised");
+                    }
+                  }}
+                >
+                  Mark selected as advised
+                </button>
+              </>
+            )}
+          </div>
+          {requests.map((item) => (
+            <article className="request-card" key={item.id}>
+              <div className="request-card-topline">
+                <label className="request-check">
+                  <input
+                    type="checkbox"
+                    checked={selectedRequestIds.includes(item.id)}
+                    onChange={() => onToggleSelect(item.id)}
+                  />
+                </label>
+                <div className="order-card-heading" style={{ flex: 1 }}>
+                  <div><h3>{item.request}</h3><small>{new Date(item.createdAt).toLocaleString()}</small></div>
+                  <strong>{item.status}</strong>
+                </div>
+              </div>
+              <div className="order-customer"><span>{item.name}</span><span>✉ {item.email}</span><span>☎ {item.phone}</span></div>
+              <p className="order-parts">Vehicle: {item.vehicle} · Color: {item.color || "No preference"}</p>
+              <div className="request-admin-fields"><label>Availability<select value={item.availability || "Pending"} onChange={(event) => onUpdate(item.id, { availability: event.target.value })}><option>Pending</option><option>Available</option><option>Not available</option></select></label><label>Price<input type="number" min="0" value={item.price || ""} onChange={(event) => onUpdate(item.id, { price: event.target.value })} placeholder="USD" /></label>{item.availability === "Not available" && <label>Estimated sourcing time<input value={item.timeline || ""} onChange={(event) => onUpdate(item.id, { timeline: event.target.value })} placeholder="e.g. 1 month" /></label>}</div>
+              <label className="order-status">Advice or availability<textarea value={item.response || ""} rows="3" onChange={(event) => onUpdate(item.id, { response: event.target.value })} placeholder="Explain availability, alternatives, price, or fitment advice..." /></label>
+              <label className="order-status">Request status<select value={item.status} onChange={(event) => onUpdate(item.id, { status: event.target.value })}><option>New</option><option>Checking availability</option><option>Advised</option><option>Completed</option><option>Converted to order</option></select></label>
+            </article>
+          ))}
+        </>
+      ) : <p className="empty-state">No custom part requests yet.</p>}
     </section>
   </>;
 }
@@ -1002,6 +1067,7 @@ export default function App() {
   const [requests, setRequests] = useState(() =>
     readStorage("eliteAutoRequests", []),
   );
+  const [selectedRequestIds, setSelectedRequestIds] = useState([]);
   const [category, setCategory] = useState("All");
   const [search, setSearch] = useState("");
   const [drawer, setDrawer] = useState(false);
@@ -1136,6 +1202,30 @@ export default function App() {
         request.id === id ? { ...request, ...details } : request,
       ),
     );
+  };
+  const toggleRequestSelect = (id) => {
+    setSelectedRequestIds((current) =>
+      current.includes(id)
+        ? current.filter((itemId) => itemId !== id)
+        : [...current, id],
+    );
+  };
+  const toggleAllRequests = () => {
+    setSelectedRequestIds((current) =>
+      current.length === requests.length ? [] : requests.map((request) => request.id),
+    );
+  };
+  const bulkUpdateRequests = (status) => {
+    if (!selectedRequestIds.length) return;
+    setRequests((currentRequests) =>
+      currentRequests.map((request) =>
+        selectedRequestIds.includes(request.id)
+          ? { ...request, status }
+          : request,
+      ),
+    );
+    notify(`Updated ${selectedRequestIds.length} request(s) to ${status}`);
+    setSelectedRequestIds([]);
   };
   const updateProductDetails = (id, details) => {
     setProducts(
@@ -1483,6 +1573,10 @@ export default function App() {
       {(admin || isAdminRoute) && requestsOpen && (
         <RequestsPanel
           requests={requests}
+          selectedRequestIds={selectedRequestIds}
+          onToggleSelect={toggleRequestSelect}
+          onToggleSelectAll={toggleAllRequests}
+          onBulkStatusUpdate={bulkUpdateRequests}
           onUpdate={updateRequest}
           onClose={() => setRequestsOpen(false)}
         />
