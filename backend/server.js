@@ -1,39 +1,57 @@
 import express from "express";
-import cors from "cors";
-import dotenv from "dotenv";
 import mongoose from "mongoose";
-
-dotenv.config();
+import cors from "cors";
 
 const app = express();
-const port = process.env.PORT || 5000;
+const port = 5000;
 
+// Middleware (Must be defined before routes)
 app.use(cors());
 app.use(express.json());
 
-app.get("/api/health", (req, res) => {
-  res.json({
-    status: "ok",
-    message: "Elite Auto Hub API is running",
-  });
+// 1. Schema & Model Definition
+const orderSchema = new mongoose.Schema({
+  title: String,
+  price: Number,
+  createdAt: { type: Date, default: Date.now }
 });
 
+const Order = mongoose.model("Order", orderSchema);
+
+// 2. GET Route - Retrieve all orders
+app.get("/api/orders", async (req, res) => {
+  try {
+    const orders = await Order.find().sort({ createdAt: -1 });
+    res.json(orders);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// 3. POST Route - Create order dynamically
+app.post("/api/orders", async (req, res) => {
+  try {
+    const { title, price } = req.body;
+    const newOrder = await Order.create({ title, price });
+    res.status(201).json(newOrder);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// 4. Server & Database Startup
 const startServer = async () => {
   try {
-    if (process.env.MONGODB_URI) {
-      await mongoose.connect(process.env.MONGODB_URI);
-      console.log("MongoDB connected successfully");
-    } else {
-      console.log("MongoDB URI not set. Server running without database connection.");
-    }
-
+    await mongoose.connect("mongodb://127.0.0.1:27017/eliteautohub");
+    console.log("MongoDB connected successfully");
+    
     app.listen(port, () => {
       console.log(`Server is running on http://localhost:${port}`);
     });
   } catch (error) {
-    console.error("Failed to start server:", error);
-    process.exit(1);
+    console.error("Failed to connect to MongoDB:", error);
   }
 };
 
 startServer();
+
