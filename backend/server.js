@@ -18,8 +18,8 @@ const orderSchema = new mongoose.Schema({
 
 const Order = mongoose.model("Order", orderSchema);
 
-// 2. GET Route - Retrieve all orders
-app.get("/api/orders", async (req, res) => {
+// 2. GET Route - Retrieve all orders (Changed req to _req to fix Deno no-unused-vars error)
+app.get("/api/orders", async (_req, res) => {
   try {
     const orders = await Order.find().sort({ createdAt: -1 });
     res.json(orders);
@@ -54,4 +54,3 @@ const startServer = async () => {
 };
 
 startServer();
-
