@@ -48,6 +48,7 @@ Do not commit `.env` files or real production credentials.
 - Admin order status tracking
 - Local browser storage for demo data
 - Intergration of live chat where user can talk to a customer care representative.
+- Functional order flow from custom to rders
 
 ## Production Build
 
