@@ -50,7 +50,8 @@ Do not commit `.env` files or real production credentials.
 - Intergration of live chat where user can talk to a customer care representative.
 - Functional order flow from custom to orders
 - Order receipt
-- email and phone number intergration for ordee details
+- email and phone number intergration for order details
+- 
 
 ## Production Build
 
