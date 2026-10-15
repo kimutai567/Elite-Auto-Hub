@@ -49,9 +49,9 @@ Do not commit `.env` files or real production credentials.
 - Local browser storage for demo data
 - Intergration of live chat where user can talk to a customer care representative.
 - Functional order flow from custom to orders
-- Order receipt
+- Order receipt with the details
 - email and phone number intergration for order details
-- 
+  
 
 ## Production Build
 
