@@ -56,7 +56,8 @@ Do not commit `.env` files or real production credentials.
 ## Production Build
 
 ```powershell
-npm.cmd run build
+ npm.cmd run build
+
 ```
 
 The production files are generated in `dist/` and are excluded from Git.

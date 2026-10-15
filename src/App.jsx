@@ -97,6 +97,10 @@ export default function App() {
   const [toast, setToast] = useState('');
   useEffect(() => localStorage.setItem('eliteAutoProducts', JSON.stringify(products)), [products]);
   useEffect(() => localStorage.setItem('eliteAutoQuote', JSON.stringify(quote)), [quote]);
+  useEffect(() => {
+    document.body.style.overflow = drawer ? 'hidden' : '';
+    return () => { document.body.style.overflow = ''; };
+  }, [drawer]);
   useEffect(() => localStorage.setItem('eliteAutoOrders', JSON.stringify(orders)), [orders]);
   useEffect(() => {
     const syncOrders = (event) => {
